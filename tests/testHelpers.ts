@@ -25,7 +25,16 @@ export async function basicInit(page: Page, options?: { skipAuth?: boolean }) {
 
       loggedInUser = user;
       const loginRes = { user: loggedInUser, token: 'abcdef' };
-      expect(['PUT', 'POST']).toContain(req.method());
+      const method = req.method();
+      if (method === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: { 'Content-Type': 'application/json' }, body: '' });
+        return;
+      }
+      if (method === 'DELETE') {
+        await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(null) });
+        return;
+      }
+      expect(['PUT', 'POST']).toContain(method);
       await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(loginRes) });
     });
   }
@@ -104,7 +113,70 @@ export async function mockAuthAcceptAny(page: Page, defaultUser?: any) {
     } catch (e) {}
     const user = defaultUser || { id: '1', name: body?.name || 'pizza diner', email: body?.email || 'user@jwt.com', roles: [{ role: Role.Diner }] };
     const res = { user, token: 'abcdef' };
-    expect(['PUT', 'POST']).toContain(req.method());
+    const method = req.method();
+    if (method === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: { 'Content-Type': 'application/json' }, body: '' });
+      return;
+    }
+    if (method === 'DELETE') {
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(null) });
+      return;
+    }
+    expect(['PUT', 'POST']).toContain(method);
     await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(res) });
   });
+}
+
+export async function mockStatefulAuthAndUserUpdate(
+  page: Page,
+  initialUser: { id: string; name: string; email: string; roles: { role: string }[] },
+) {
+  const userState = { ...initialUser };
+
+  await page.route('**/api/auth', async (route) => {
+    const req = route.request();
+    const method = req.method();
+
+    if (method === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: { 'Content-Type': 'application/json' }, body: '' });
+      return;
+    }
+
+    if (method === 'DELETE') {
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(null) });
+      return;
+    }
+
+    expect(['PUT', 'POST']).toContain(method);
+
+    let body: any = {};
+    try {
+      body = req.postDataJSON();
+    } catch (e) {}
+
+    if (body?.name) {
+      userState.name = body.name;
+    }
+    if (body?.email) {
+      userState.email = body.email;
+    }
+
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: userState, token: 'abcdef' }) });
+  });
+
+  await page.route(`**/api/user/${userState.id}`, async (route) => {
+    expect(route.request().method()).toBe('PUT');
+    const updatedUser = route.request().postDataJSON();
+
+    if (updatedUser?.name) {
+      userState.name = updatedUser.name;
+    }
+    if (updatedUser?.email) {
+      userState.email = updatedUser.email;
+    }
+
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: userState, token: 'abcdef' }) });
+  });
+
+  return { getUserState: () => ({ ...userState }) };
 }
