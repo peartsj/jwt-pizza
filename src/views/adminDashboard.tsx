@@ -14,12 +14,20 @@ interface Props {
 export default function AdminDashboard(props: Props) {
   const navigate = useNavigate();
   const [franchiseList, setFranchiseList] = React.useState<FranchiseList>({ franchises: [], more: false });
+  const [users, setUsers] = React.useState<User[]>([]);
   const [franchisePage, setFranchisePage] = React.useState(0);
   const filterFranchiseRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     (async () => {
       setFranchiseList(await pizzaService.getFranchises(franchisePage, 3, '*'));
+
+      try {
+        const userList = await pizzaService.getUsers(1, 10, '*');
+        setUsers(userList.users);
+      } catch (e) {
+        setUsers([]);
+      }
     })();
   }, [props.user, franchisePage]);
 
@@ -37,6 +45,23 @@ export default function AdminDashboard(props: Props) {
 
   async function filterFranchises() {
     setFranchiseList(await pizzaService.getFranchises(franchisePage, 10, `*${filterFranchiseRef.current?.value}*`));
+  }
+
+  function formatUserRoles(user: User) {
+    return (
+      user.roles
+        ?.map((role) => (role.objectId ? `${role.role}:${role.objectId}` : role.role))
+        .join(', ') || 'none'
+    );
+  }
+
+  async function deleteUser(user: User) {
+    if (!user.id) {
+      return;
+    }
+
+    await pizzaService.deleteUser(user);
+    setUsers((current) => current.filter((currentUser) => currentUser.id !== user.id));
   }
 
   let response = <NotFound />;
@@ -113,6 +138,48 @@ export default function AdminDashboard(props: Props) {
                           </td>
                         </tr>
                       </tfoot>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h3 className="text-neutral-100 text-xl mt-8">Users</h3>
+          <div className="bg-neutral-100 overflow-clip my-4">
+            <div className="flex flex-col">
+              <div className="-m-1.5 overflow-x-auto">
+                <div className="p-1.5 min-w-full inline-block align-middle">
+                  <div className="overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="uppercase text-neutral-100 bg-slate-400 border-b-2 border-gray-500">
+                        <tr>
+                          {['Name', 'Email', 'Roles', 'Action'].map((header) => (
+                            <th key={header} scope="col" className="px-6 py-3 text-center text-xs font-medium">
+                              {header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {users.map((listedUser, index) => (
+                          <tr key={listedUser.id || index} className="bg-neutral-100">
+                            <td className="text-start px-2 whitespace-nowrap text-sm font-normal text-gray-800">{listedUser.name}</td>
+                            <td className="text-start px-2 whitespace-nowrap text-sm text-gray-800">{listedUser.email}</td>
+                            <td className="text-start px-2 whitespace-nowrap text-sm text-gray-800">{formatUserRoles(listedUser)}</td>
+                            <td className="px-6 py-1 whitespace-nowrap text-end text-sm font-medium">
+                              <button
+                                type="button"
+                                aria-label={`Delete user ${listedUser.email}`}
+                                className="px-2 py-1 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-1 border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800"
+                                onClick={() => deleteUser(listedUser)}>
+                                <TrashIcon />
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
                     </table>
                   </div>
                 </div>

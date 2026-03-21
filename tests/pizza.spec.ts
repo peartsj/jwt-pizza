@@ -112,6 +112,13 @@ test('admin dashboard renders', async ({ page }) => {
     const franchisesRes = { franchises: [{ id: 'af1', name: 'Admin Franchise', admins: [{ name: 'Admin' }], stores: [{ id: 's1', name: 'Store 1', totalRevenue: 100 }] }], more: false };
     await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(franchisesRes) });
   });
+  await page.route('**/api/user**', async (route) => {
+    if (route.request().url().includes('/api/user/me')) {
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, name: 'Admin', email: 'a@jwt.com', roles: [{ role: 'admin' }] }) });
+      return;
+    }
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users: [], page: 1, limit: 10, more: false }) });
+  });
 
   await page.goto('http://localhost:5173/admin-dashboard');
   await expect(page.getByText('Franchises')).toBeVisible();
@@ -188,6 +195,14 @@ test('admin dashboard interactions', async ({ page }) => {
     await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(franchisesRes) });
   });
 
+  await page.route('**/api/user**', async (route) => {
+    if (route.request().url().includes('/api/user/me')) {
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, name: 'Admin', email: 'a@jwt.com', roles: [{ role: 'admin' }] }) });
+      return;
+    }
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users: [], page: 1, limit: 10, more: false }) });
+  });
+
   await page.goto('http://localhost:5173/admin-dashboard');
   await expect(page.getByText('Franchises')).toBeVisible();
 
@@ -198,6 +213,104 @@ test('admin dashboard interactions', async ({ page }) => {
   await page.getByRole('button', { name: 'Add Franchise' }).click();
   const url = new URL(await page.url());
   expect(url.pathname).toContain('/admin-dashboard/create-franchise');
+});
+
+test('admin dashboard lists users', async ({ page }) => {
+  await mockVersion(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('token', 'abcdef');
+  });
+
+  await page.route('**/api/user/me', async (route) => {
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, name: 'Admin', email: 'a@jwt.com', roles: [{ role: 'admin' }] }) });
+  });
+
+  await page.route('**/api/franchise**', async (route) => {
+    const franchisesRes = { franchises: [{ id: 'af1', name: 'Admin Franchise', admins: [{ name: 'Admin' }], stores: [] }], more: false };
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(franchisesRes) });
+  });
+
+  await page.route('**/api/user**', async (route) => {
+    if (route.request().url().includes('/api/user/me')) {
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, name: 'Admin', email: 'a@jwt.com', roles: [{ role: 'admin' }] }) });
+      return;
+    }
+
+    expect(route.request().method()).toBe('GET');
+    const url = new URL(route.request().url());
+    expect(url.searchParams.get('page')).toBe('1');
+    expect(url.searchParams.get('limit')).toBe('10');
+    expect(url.searchParams.get('name')).toBe('*');
+
+    const users = [
+      { id: 'u1', name: 'Diner One', email: 'd1@jwt.com', roles: [{ role: 'diner' }] },
+      { id: 'u2', name: 'Franchise Owner', email: 'owner@jwt.com', roles: [{ role: 'franchisee' }] },
+    ];
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users, page: 1, limit: 10, more: false }) });
+  });
+
+  await page.goto('http://localhost:5173/admin-dashboard');
+  await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
+  await expect(page.getByRole('main')).toContainText('Diner One');
+  await expect(page.getByRole('main')).toContainText('d1@jwt.com');
+  await expect(page.getByRole('main')).toContainText('Franchise Owner');
+});
+
+test('admin dashboard deletes user from list', async ({ page }) => {
+  await mockVersion(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('token', 'abcdef');
+  });
+
+  await page.route('**/api/user/me', async (route) => {
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, name: 'Admin', email: 'a@jwt.com', roles: [{ role: 'admin' }] }) });
+  });
+
+  await page.route('**/api/franchise**', async (route) => {
+    const franchisesRes = { franchises: [{ id: 'af1', name: 'Admin Franchise', admins: [{ name: 'Admin' }], stores: [] }], more: false };
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(franchisesRes) });
+  });
+
+  const users = [
+    { id: 'u1', name: 'Diner One', email: 'd1@jwt.com', roles: [{ role: 'diner' }] },
+    { id: 'u2', name: 'Franchise Owner', email: 'owner@jwt.com', roles: [{ role: 'franchisee' }] },
+  ];
+
+  await page.route('**/api/user**', async (route) => {
+    const method = route.request().method();
+    const url = route.request().url();
+
+    if (url.includes('/api/user/me')) {
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, name: 'Admin', email: 'a@jwt.com', roles: [{ role: 'admin' }] }) });
+      return;
+    }
+
+    if (method === 'GET') {
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users, page: 1, limit: 10, more: false }) });
+      return;
+    }
+
+    if (method === 'DELETE') {
+      const id = url.split('/').pop();
+      const index = users.findIndex((u) => u.id === id);
+      if (index >= 0) {
+        users.splice(index, 1);
+      }
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: 'null' });
+      return;
+    }
+
+    await route.fulfill({ status: 405, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Method not allowed' }) });
+  });
+
+  await page.goto('http://localhost:5173/admin-dashboard');
+  await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
+  await expect(page.getByRole('main')).toContainText('d1@jwt.com');
+
+  await page.getByRole('button', { name: 'Delete user d1@jwt.com' }).click();
+
+  await expect(page.getByRole('main')).not.toContainText('d1@jwt.com');
+  await expect(page.getByRole('main')).toContainText('owner@jwt.com');
 });
 
 test('admin dashboard can create and close a franchise', async ({ page }) => {
@@ -229,6 +342,14 @@ test('admin dashboard can create and close a franchise', async ({ page }) => {
 
     const franchisesRes = { franchises: [{ id: 'af1', name: 'Admin Franchise', admins: [{ name: 'Admin' }], stores: [{ id: 's1', name: 'Store 1', totalRevenue: 100 }] }], more: false };
     await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(franchisesRes) });
+  });
+
+  await page.route('**/api/user**', async (route) => {
+    if (route.request().url().includes('/api/user/me')) {
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, name: 'Admin', email: 'a@jwt.com', roles: [{ role: 'admin' }] }) });
+      return;
+    }
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users: [], page: 1, limit: 10, more: false }) });
   });
 
   await page.goto('http://localhost:5173/admin-dashboard');

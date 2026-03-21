@@ -331,4 +331,5 @@ export async function submitUserUpdate(page: Page, updates: { name?: string; ema
 
   await page.getByRole('button', { name: 'Update' }).click();
   await expect(dialog).toHaveClass(/hidden/);
+  await page.waitForSelector('#hs-jwt-modal-backdrop', { state: 'hidden' });
 }
