@@ -180,3 +180,155 @@ export async function mockStatefulAuthAndUserUpdate(
 
   return { getUserState: () => ({ ...userState }) };
 }
+
+export type StatefulUser = {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  roles: { role: Role; objectId?: string }[];
+};
+
+function cloneStatefulRoles(roles: { role: Role; objectId?: string }[]) {
+  return roles.map((role) => ({ ...role }));
+}
+
+function toPublicStatefulUser(userState: StatefulUser) {
+  return {
+    id: userState.id,
+    name: userState.name,
+    email: userState.email,
+    roles: cloneStatefulRoles(userState.roles),
+  };
+}
+
+export async function setupStatefulUserMocks(page: Page, initialUser: StatefulUser) {
+  const userState: StatefulUser = {
+    ...initialUser,
+    roles: cloneStatefulRoles(initialUser.roles),
+  };
+  const updateRequests: any[] = [];
+
+  await page.route('**/api/auth', async (route) => {
+    const req = route.request();
+    const method = req.method();
+
+    if (method === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: { 'Content-Type': 'application/json' }, body: '' });
+      return;
+    }
+
+    if (method === 'DELETE') {
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(null) });
+      return;
+    }
+
+    let body: any = {};
+    try {
+      body = req.postDataJSON();
+    } catch (e) {}
+
+    if (method === 'PUT') {
+      if (body?.email !== userState.email || body?.password !== userState.password) {
+        await route.fulfill({ status: 401, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Unauthorized' }) });
+        return;
+      }
+
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: toPublicStatefulUser(userState), token: 'abcdef' }) });
+      return;
+    }
+
+    if (method === 'POST') {
+      userState.name = body?.name || userState.name;
+      userState.email = body?.email || userState.email;
+      userState.password = body?.password || userState.password;
+
+      await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: toPublicStatefulUser(userState), token: 'abcdef' }) });
+      return;
+    }
+
+    await route.fulfill({ status: 405, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Method not allowed' }) });
+  });
+
+  await page.route('**/api/user/me', async (route) => {
+    expect(route.request().method()).toBe('GET');
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(toPublicStatefulUser(userState)) });
+  });
+
+  await page.route(`**/api/user/${userState.id}`, async (route) => {
+    expect(route.request().method()).toBe('PUT');
+    const updatedUser = route.request().postDataJSON();
+    updateRequests.push(updatedUser);
+
+    if (updatedUser?.name !== undefined) {
+      userState.name = updatedUser.name;
+    }
+    if (updatedUser?.email !== undefined) {
+      userState.email = updatedUser.email;
+    }
+    if (updatedUser?.password !== undefined) {
+      userState.password = updatedUser.password;
+    }
+    if (Array.isArray(updatedUser?.roles)) {
+      userState.roles = cloneStatefulRoles(updatedUser.roles);
+    }
+
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: toPublicStatefulUser(userState), token: 'abcdef' }) });
+  });
+
+  return {
+    getUserState: () => ({ ...userState, roles: cloneStatefulRoles(userState.roles) }),
+    getUpdateRequests: () => updateRequests.map((payload) => ({ ...payload, roles: Array.isArray(payload?.roles) ? cloneStatefulRoles(payload.roles) : payload?.roles })),
+  };
+}
+
+export async function setupUserScenario(page: Page, initialUser: StatefulUser) {
+  await mockMenu(page);
+  await mockFranchises(page);
+  await mockVersion(page);
+  await mockOrder(page);
+  return setupStatefulUserMocks(page, initialUser);
+}
+
+export async function loginAs(page: Page, email: string, password: string) {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByRole('textbox', { name: 'Email address' }).fill(email);
+  await page.getByRole('textbox', { name: 'Password' }).fill(password);
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page.getByRole('link', { name: 'Logout' })).toBeVisible();
+}
+
+export async function loginExpectUnauthorized(page: Page, email: string, password: string) {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByRole('textbox', { name: 'Email address' }).fill(email);
+  await page.getByRole('textbox', { name: 'Password' }).fill(password);
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page.getByText('Unauthorized')).toBeVisible();
+}
+
+export async function openEditUserDialog(page: Page) {
+  await page.goto('/diner-dashboard');
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.locator('h3')).toContainText('Edit user');
+}
+
+export async function submitUserUpdate(page: Page, updates: { name?: string; email?: string; password?: string }) {
+  const dialog = page.locator('#hs-jwt-modal');
+
+  if (updates.name !== undefined) {
+    await dialog.locator('input').nth(0).fill(updates.name);
+  }
+
+  if (updates.email !== undefined) {
+    await dialog.locator('input[type="email"]').fill(updates.email);
+  }
+
+  if (updates.password !== undefined) {
+    await dialog.locator('#password').fill(updates.password);
+  }
+
+  await page.getByRole('button', { name: 'Update' }).click();
+  await expect(dialog).toHaveClass(/hidden/);
+}
