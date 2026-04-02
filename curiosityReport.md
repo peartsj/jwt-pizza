@@ -101,6 +101,6 @@ networks:
 
 ## Final Thoughts
 
-It was very cool to take the time to understand what exactly is happening on my old laptop running my home lab. I think I’ll take some time soon to clean up some of my `docker-compose.yml` files, since a lot of what is in them was suggested by internet tutorials and AI—and I’m sure it’s not as streamlined as it could be.
+It was very cool to take the time to understand what exactly is happening on my old laptop running my home lab. I think I’ll take some time soon to clean up some of my `docker-compose.yml` files, since a lot of what is in them was sourced from internet tutorials and AI, and I’m sure it’s not as streamlined as it could be.
 
 It’s clear that Docker is an incredibly useful and versatile platform that every developer and IT professional should be familiar with. Dockerfiles and Docker Compose are just the tip of the iceberg.
