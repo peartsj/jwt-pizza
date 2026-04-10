@@ -237,7 +237,7 @@
 | Classification | Brute Force / Insertion                                                        |
 | Severity       | 0                                                                              |
 | Description    | Registration of many users with SQL and code in their names and emails. The database was not affected; however, odd behavior occurred during email handling. The "." was displayed incorrectly |
-| Images         | ![Dead database](deadDatabase.png) |
+| Images         | ![Dead database](./screenshots/deadDatabase.png) |
 | Corrections    | Sanitize and validate user-supplied input during registration.                 |
 
 
