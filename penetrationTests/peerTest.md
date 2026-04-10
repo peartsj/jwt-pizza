@@ -113,7 +113,7 @@
 | Classification | Randomness Test                                                                      |
 | Severity       | 2                                                                              |
 | Description    | Authtoken was not being randomly generated and therefore it can be predicted.                |
-| Images         | ![Authtoken Randomness](<./screenshots/Sequencer Authtoken Randomness.png>) |
+| Images         | ![Authtoken Randomness](<./screenshots/Sequencer AuthToken Randomness.png>) |
 | Corrections    | Ensure authtokens generated randomly                                                          |
 
 
@@ -154,7 +154,7 @@
 | Classification | Authtoken Brute Force                                                                      |
 | Severity       | 0                                                                              |
 | Description    | Attempted to brute force authtoken, did not succeed.                |
-| Images         | ![Authtoken Brute Force](<Authtoken Brute Force Spencer.png>)  |
+| Images         | ![Authtoken Brute Force](<./screenshots/Authtoken Brute Force Spencer.png>)  |
 | Corrections    | N/A                                                          |
 
 
