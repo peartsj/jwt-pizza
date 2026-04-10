@@ -99,7 +99,7 @@
 | Classification | Brute Force                                                                      |
 | Severity       | 3                                                                              |
 | Description    | Tested brute forcing password. Blank password was able to authenticate                |
-| Images         | ![Password Brute Force](./screenshots/Spencer Password Brute Force.png) |
+| Images         | ![Password Brute Force](<./screenshots/Spencer Password Brute Force.png>) |
 | Corrections    | Make blank passwords still run through all normal authentication checks.                                                          |
 
 
@@ -113,7 +113,7 @@
 | Classification | Randomness Test                                                                      |
 | Severity       | 2                                                                              |
 | Description    | Authtoken was not being randomly generated and therefore it can be predicted.                |
-| Images         | ![Authtoken Randomness](./screenshots/Sequencer Authtoken Randomness.png) |
+| Images         | ![Authtoken Randomness](<./screenshots/Sequencer Authtoken Randomness.png>) |
 | Corrections    | Ensure authtokens generated randomly                                                          |
 
 
@@ -127,7 +127,7 @@
 | Classification | Price Injection                                                                      |
 | Severity       | 2                                                                              |
 | Description    | Able to set price of pizza in request, and effectively "steal money". Since there is not real money being transacted, it is not as big of a deal                |
-| Images         | ![Price Injection](./screenshots/Spencer Price Brute Force.png)  |
+| Images         | ![Price Injection](<./screenshots/Spencer Price Brute Force.png>)  |
 | Corrections    | Enforce price server side                                                          |
 
 
@@ -140,7 +140,7 @@
 | Classification | SQL Injection                                                                      |
 | Severity       | 0                                                                              |
 | Description    | Inject SQL into register request.                |
-| Images         | ![SQL Register Injection](./screenshots/Register SQL Injection.png)  |
+| Images         | ![SQL Register Injection](<./screenshots/Register SQL Injection.png>)  |
 | Corrections    | N/A                                                         |
 
 
@@ -154,7 +154,7 @@
 | Classification | Authtoken Brute Force                                                                      |
 | Severity       | 0                                                                              |
 | Description    | Attempted to brute force authtoken, did not succeed.                |
-| Images         | ![Authtoken Brute Force](Authtoken Brute Force Spencer.png)  |
+| Images         | ![Authtoken Brute Force](<Authtoken Brute Force Spencer.png>)  |
 | Corrections    | N/A                                                          |
 
 
@@ -263,7 +263,7 @@
 | Classification | Brute Force Password Discovery                                                 |
 | Severity       | 0                                                                              |
 | Description    | Brute Force Password attempts on backend service, did not succeed              |
-| Images         | ![Password Brute Force](./screenshots/Password Brute Force.png) |
+| Images         | ![Password Brute Force](<./screenshots/Password Brute Force.png>) |
 | Corrections    | N/A                                                                            |
 
 
@@ -277,7 +277,7 @@
 | Classification | Authtoken Randomness                                                            |
 | Severity       | 2                                                                              |
 | Description    | Tested the randomness of given auth tokens to see if they can be predicted                |
-| Images         | ![Authtoken Randomness](./screenshots/Authtoken Randomness.png)  |
+| Images         | ![Authtoken Randomness](<./screenshots/Authtoken Randomness.png>)  |
 | Corrections    | Make authtoken generation random                                                          |
 
 
@@ -291,7 +291,7 @@
 | Classification | Brute Force Pizza Purchase authtoken                                                       |
 | Severity       | 0                                                                              |
 | Description    | Tried to buy a pizza with variations is place of the correct token. Did not work.           |
-| Images         | ![Authtoken Brute Force](./screenshots/Authtoken Brute Force.png)  |
+| Images         | ![Authtoken Brute Force](<./screenshots/Authtoken Brute Force.png>)  |
 | Corrections    | N/A                                                          |
 
 
@@ -304,7 +304,7 @@
 | Classification | Injection                                                                      |
 | Severity       | 0                                                                             |
 | Description    | SQL injection attempt, was not able to inject any SQL using sqlMap.                |
-| Images         | ![SQL Injection](./screenshots/SQL Injection.png) <br/> Stores and menu no longer accessible. |
+| Images         | ![SQL Injection](<./screenshots/SQL Injection.png>) |
 | Corrections    | N/A                                                        |
 
 
@@ -318,11 +318,10 @@
 | Classification | Brute Force                                                                       |
 | Severity       | 0                                                                              |
 | Description    | Did not allow the changing of pizza price from the user end                |
-| Images         | ![Price Brute Force](./screenshots/Price Brute Force.png)  |
+| Images         | ![Price Brute Force](<./screenshots/Price Brute Force.png>)  |
 | Corrections    | N/A                                                          |
 
 
 
 ## Combined summary of learnings
 This report shows how important database security really is. Access should always be properly checked, and important information should be confirmed by the database instead of trusting user input or values stored on the front end. Strong server-side validation helps prevent unauthorized access and misuse of data. It is important that Devops tests for such vulnerabilities so the responsibility of system security is shared among both teams if they are separate. It is difficult to consider every avenue for attack so everyone working together will give the maximum amount of security.
-
